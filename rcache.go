@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/micro/go-log"
+	log "github.com/micro/go-log"
 	"github.com/micro/go-micro/registry"
 )
 
@@ -40,8 +40,6 @@ type cache struct {
 
 var (
 	DefaultTTL = time.Minute
-
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
 func backoff(attempts int) time.Duration {
@@ -305,7 +303,7 @@ func (c *cache) run(service string) {
 		}
 
 		// jitter before starting
-		j := r.Int63n(100)
+		j := rand.Int63n(100)
 		time.Sleep(time.Duration(j) * time.Millisecond)
 
 		// create new watcher
@@ -410,6 +408,7 @@ func (c *cache) String() string {
 
 // New returns a new cache
 func New(r registry.Registry, opts ...Option) Cache {
+	rand.Seed(time.Now().UnixNano())
 	options := Options{
 		TTL: DefaultTTL,
 	}
