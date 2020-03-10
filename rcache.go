@@ -177,8 +177,11 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 				return cp, nil
 			}
 		}
-		log.Logf("get service(%v) from etcd at %v", service, time.Now().UnixNano())
 
+		t := time.Now()
+		defer func() {
+			log.Logf("get service(%v) from etcd at: %v cost: %v", service, t.Format(time.RFC3339Nano), time.Since(t))
+		}()
 		// ask the registry
 		services, err := c.Registry.GetService(service)
 		if err != nil {
