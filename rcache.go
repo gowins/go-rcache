@@ -46,6 +46,7 @@ var (
 )
 
 // opGet 是从 etcd 获取数据的行为
+// forced 是否 "强制更新"
 type opGet func(service string, forced bool) ([]*registry.Service, error)
 
 func backoff(attempts int) time.Duration {
@@ -199,15 +200,15 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	c.RUnlock()
 
 	// get and return services
-	return get(service, false) // 不强制更新
+	return get(service, false) // 不"强制更新"
 }
 
 // interval 计算某个服务需要更新的间隔
-// x - rand(5 - 8)  周期 46-50s 之间更新一次
+// x - rand(10 - 24)  周期 36-55s 之间更新一次
 func interval(in time.Duration) time.Duration {
 	rand.Seed(time.Now().UnixNano())
 	// [0,n)
-	d := in - time.Duration(rand.Int63n(5) + 10) *time.Second
+	d := in - time.Duration(rand.Int63n(20) + 5) *time.Second
 
 	return d
 }
@@ -227,7 +228,7 @@ func (c *cache) refreshByTimer(service string, get opGet) {
 
 		// 重试两次，防止一次失败
 		for i := 1; i <= 2; i++ {
-			_, err := get(service, true) // force update
+			_, err := get(service, true) // "强制更新"
 			if err == nil {
 				break
 			}
