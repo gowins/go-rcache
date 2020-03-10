@@ -363,6 +363,7 @@ func (c *cache) run(service string, get opGet) {
 	// set watcher
 	c.Lock()
 	if v, ok := c.watched[service]; ok && v == true {
+		c.Unlock()
 		return
 	}
 
