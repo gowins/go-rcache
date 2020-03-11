@@ -218,7 +218,7 @@ func interval(in time.Duration) time.Duration {
 
 func (c *cache) refreshByTimer(service string, get opGet) {
 	d := interval(c.opts.TTL)
-	log.Logf("[rcache-getservice]service(%v) will refresh cache by interval(%v)", service, d)
+	log.Logf("service(%v) will refresh cache by interval(%v)", service, d)
 
 	for {
 		if c.quit() {
