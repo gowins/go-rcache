@@ -235,7 +235,7 @@ func (c *cache) refreshByTimer(service string, get opGet) {
 			if err == nil {
 				break
 			}
-			log.Logf("[rcache-getservice]get service(%v) from registry failed(count: %v): %v", service, i, err.Error())
+			log.Logf("get service(%v) from registry failed(count: %v): %v", service, i, err.Error())
 		}
 
 		time.Sleep(d)
