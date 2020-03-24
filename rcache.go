@@ -38,7 +38,11 @@ type cache struct {
 
 	exit chan bool
 
+	// 更新中的服务
 	updating sync.Map
+
+	// 定时更新中的服务列表列表
+	timers sync.Map
 }
 
 var (
@@ -217,6 +221,13 @@ func interval(in time.Duration) time.Duration {
 }
 
 func (c *cache) refreshByTimer(service string, get opGet) {
+	// 判断是否已经有相关的定时器在运行，如果有则直接返回
+	// 如果没有则开始
+	if v, loaded := c.timers.LoadOrStore(service, true); loaded && v == true {
+		return
+	}
+	const retryTimes = 2
+
 	d := interval(c.opts.TTL)
 	log.Logf("service(%v) will refresh cache by interval(%v)", service, d)
 
@@ -229,13 +240,25 @@ func (c *cache) refreshByTimer(service string, get opGet) {
 		j := rand.Int63n(100)
 		time.Sleep(time.Duration(j) * time.Millisecond)
 
+		notFound := 0
 		// 重试两次，防止一次失败
-		for i := 1; i <= 2; i++ {
+		for i := 1; i <= retryTimes; i++ {
 			_, err := get(service, true) // "强制更新"
 			if err == nil {
-				break
+				break // break retry
 			}
+
+			if err == registry.ErrNotFound {
+				notFound++
+			}
+
 			log.Logf("get service(%v) from registry failed(count: %v): %v", service, i, err.Error())
+		}
+
+		// 如果两次都不 not found 错误，则认为当前定时器是无效的，可由下一次请求重新触发
+		if notFound == retryTimes {
+			c.timers.Delete(service)
+			return
 		}
 
 		time.Sleep(d)
@@ -358,6 +381,9 @@ func (c *cache) update(res *registry.Result) {
 // run starts the cache watcher loop
 // it creates a new watcher if there's a problem
 func (c *cache) run(service string, get opGet) {
+	// 开启定时刷新
+	go c.refreshByTimer(service, get)
+
 	// set watcher
 	c.Lock()
 	if v, ok := c.watched[service]; ok && v == true {
@@ -367,9 +393,6 @@ func (c *cache) run(service string, get opGet) {
 
 	c.watched[service] = true
 	c.Unlock()
-
-	// 开启定时刷新
-	go c.refreshByTimer(service, get)
 
 	// delete watcher on exit
 	defer func() {
