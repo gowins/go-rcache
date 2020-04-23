@@ -439,9 +439,12 @@ func (c *cache) run(service string, get opGet) {
 		// reset a
 		a = 0
 
+		log.Logf("[r-cache.run] start watch - (%s).", service)
 		// watch for events
 		if err := c.watch(w); err != nil {
+			log.Logf("[r-cache.run] watch - (%s) error: %v.", service, err)
 			if c.quit() {
+				log.Logf("[r-cache.run] quit watch - (%s).", service)
 				return
 			}
 
@@ -455,8 +458,11 @@ func (c *cache) run(service string, get opGet) {
 			time.Sleep(d)
 			b++
 
+			log.Logf("[r-cache.run] start new watch - (%s).", service)
 			continue
 		}
+
+		log.Logf("[r-cache.run] invalid watch logic - (%s).", service)
 
 		// reset b
 		b = 0
@@ -471,7 +477,9 @@ func (c *cache) watch(w registry.Watcher) error {
 	// manage this loop
 	go func() {
 		// wait for exit
+		log.Log("[r-cache.watch] before exit.")
 		<-c.exit
+		log.Log("[r-cache.watch] after exit.")
 		w.Stop()
 	}()
 
