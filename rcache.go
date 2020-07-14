@@ -43,6 +43,9 @@ type cache struct {
 
 	// 定时更新中的服务列表列表
 	timers sync.Map
+
+	// watch 最后一次更新时间
+	watchUpdatedAt time.Time
 }
 
 var (
@@ -194,7 +197,11 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 
 		// cache results
 		c.Lock()
-		c.set(service, c.cp(services))
+		// 1. 非定时器更新，理论上应该不会触发条件
+		// 2. 定时器更新，判断上一次 watch 更新时间是否还在 5 秒内，如果 5 秒内丢弃此次更新
+		if !forced || (forced && time.Since(c.watchUpdatedAt) > time.Second*5) {
+			c.set(service, c.cp(services))
+		}
 		c.Unlock()
 
 		return services, nil
@@ -277,6 +284,8 @@ func (c *cache) update(res *registry.Result) {
 
 	c.Lock()
 	defer c.Unlock()
+	// 记录 watch 更新时间，不管结果的原因是此时可认为 watch 机制还是有效的
+	c.watchUpdatedAt = time.Now()
 
 	services, ok := c.cache[res.Service.Name]
 	if !ok {
@@ -533,11 +542,12 @@ func New(r registry.Registry, opts ...Option) Cache {
 	}
 
 	return &cache{
-		Registry: r,
-		opts:     options,
-		watched:  make(map[string]bool),
-		cache:    make(map[string][]*registry.Service),
-		ttls:     make(map[string]time.Time),
-		exit:     make(chan bool),
+		Registry:       r,
+		opts:           options,
+		watched:        make(map[string]bool),
+		cache:          make(map[string][]*registry.Service),
+		ttls:           make(map[string]time.Time),
+		exit:           make(chan bool),
+		watchUpdatedAt: time.Now(),
 	}
 }

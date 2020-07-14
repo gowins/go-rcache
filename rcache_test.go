@@ -40,13 +40,18 @@ func Test_cache_updateByTimer(t *testing.T) {
 }
 
 func TestCache_getFromRegistry(t *testing.T) {
-	var m sync.Map
+	var (
+		m sync.Map
+		wg sync.WaitGroup
+	)
 	type s struct {
 		p *int
 	}
 
 	for i :=0; i < 1000; i++ {
+		wg.Add(1)
 		go func(i int) {
+			defer wg.Done()
 			 ss := new(sync.Mutex)
 			v, _ := m.LoadOrStore(i, ss)
 			ss.Lock()
@@ -58,7 +63,7 @@ func TestCache_getFromRegistry(t *testing.T) {
 		}(i)
 	}
 
-	time.Sleep(time.Hour)
+	wg.Wait()
 }
 
 func BenchmarkCache_getFromRegistry(b *testing.B) {
