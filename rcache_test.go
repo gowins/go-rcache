@@ -198,3 +198,15 @@ func TestCacheUpdate(t *testing.T) {
 
 	time.Sleep(time.Minute*10)
 }
+
+func TestTimeTruncate(t *testing.T) {
+	tm := time.Now()
+	tm2 := tm
+
+	if tm2.Sub(tm.Add(-time.Minute)) == time.Minute {
+		fmt.Println("success")
+		return
+	}
+
+	fmt.Println("failed.", tm2.Sub(tm.Truncate(time.Minute)))
+}
