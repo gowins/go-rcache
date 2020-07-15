@@ -198,7 +198,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		// 1. 非定时器更新，理论上应该不会触发条件
 		// 2. 定时器更新，判断上一次 watch 更新时间是否还在 5 秒内，如果 5 秒内丢弃此次更新
 		ttl := c.ttls[service]
-		if !forced || (forced && t.Sub(ttl.Truncate(c.opts.TTL)) > time.Second*5) {
+		if !forced || (forced && t.Sub(ttl.Add(-c.opts.TTL)) > time.Second*5) {
 			c.set(service, c.cp(services))
 		} else {
 			log.Logf("ignore(%s) at: %v", service, t.Format(time.RFC3339Nano))
