@@ -201,6 +201,8 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		// 2. 定时器更新，判断上一次 watch 更新时间是否还在 5 秒内，如果 5 秒内丢弃此次更新
 		if !forced || (forced && time.Since(c.watchUpdatedAt) > time.Second*5) {
 			c.set(service, c.cp(services))
+		} else {
+			log.Logf("ignore(%s) at: %v", service, time.Now())
 		}
 		c.Unlock()
 
